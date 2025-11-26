@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Receipt Viewer</title>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+  body{font-family:Arial,Helvetica,sans-serif;margin:18px;background:#f6f7fb}
+  .rec{background:#fff;padding:16px;border-radius:8px;max-width:720px;margin:0 auto}
+  .buttons{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+  button{padding:8px 10px;border-radius:6px;border:0;cursor:pointer}
+  .primary{background:#0b8f4a;color:#fff}
+</style>
+</head>
+<body>
+  <div id="rec" class="rec"></div>
+  <div class="buttons"><button id="jpg" class="primary">Download JPG</button><button id="json">Save JSON</button></div>
+
+<script>
+const LS_LAST='dhw_last_receipt_v1';
+function render(){ const raw=localStorage.getItem(LS_LAST); if(!raw){ document.getElementById('rec').innerHTML='<div>No receipt</div>'; return; } const o=JSON.parse(raw); document.getElementById('rec').innerHTML = `<h2>Dhwarkadhish Food Court</h2><div><strong>Order:</strong> ${o.id||''}</div><div style="margin-top:8px">${(o.items||[]).map(it=>`<div style="display:flex;justify-content:space-between"><div>${it.name} x ${it.qty}</div><div>₹${(it.price*it.qty).toFixed(2)}</div></div>`).join('')}</div><hr><div style="display:flex;justify-content:space-between"><div>Total</div><div>₹${(o.total||0).toFixed(2)}</div></div>`; }
+document.getElementById('jpg').addEventListener('click', ()=>{ const el=document.getElementById('rec'); html2canvas(el,{scale:3,backgroundColor:null}).then(canvas=>canvas.toBlob(blob=>{ const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='dhw_receipt_'+Date.now()+'.jpg'; a.click(); URL.revokeObjectURL(url); },'image/jpeg',0.95)); });
+document.getElementById('json').addEventListener('click', ()=>{ const raw=localStorage.getItem(LS_LAST); if(!raw) return alert('No receipt'); const blob=new Blob([raw],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='dhw_receipt_'+Date.now()+'.json'; a.click(); URL.revokeObjectURL(url); });
+render();
+</script>
+</body>
+</html>

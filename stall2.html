@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Stall 2 — Punjab Dhaba</title>
+<style>
+  :root{--accent:#0b8f4a;--muted:#666}
+  body{font-family:Arial,Helvetica,sans-serif;background:#f6f7fb;margin:0}
+  .header{background:#fff;padding:12px 16px;border-bottom:1px solid #e8e8e8;display:flex;justify-content:space-between;align-items:center}
+  .logo img{width:40px;height:34px;object-fit:cover;border-radius:6px}
+  .tabs{display:flex;gap:8px;margin:12px}
+  .tab{padding:8px 12px;border-radius:8px;background:#fff;border:1px solid #e6e6e9;cursor:pointer}
+  .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .container{max-width:1000px;margin:8px auto;padding:12px}
+  .card{background:#fff;padding:12px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,0.04)}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .item{display:flex;gap:10px;padding:10px;border-radius:8px;border:1px solid #eef6ef;align-items:center}
+  .thumb{width:96px;height:70px;border-radius:8px;overflow:hidden;background:#f8faf8}
+  .thumb img{width:100%;height:100%;object-fit:cover}
+  .actions{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+  .pay{background:#0b8f4a;color:#fff;padding:8px 10px;border-radius:6px;border:0;cursor:pointer}
+  .small-muted{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:10px"><img src="/mnt/data/9eec5254-3cdb-405c-be8e-54c847ae264a.png" alt="logo"><div><strong>Punjab Dhaba — Stall 2</strong><div class="small-muted">Dhwarkadhish Food Court</div></div></div>
+    <div><a href="dashboard.html" style="margin-right:8px">Main Admin</a><a href="manage-dishes.html">Manage Dishes</a></div>
+  </div>
+
+  <div class="tabs">
+    <div id="tabDishes" class="tab active">Dishes</div>
+    <div id="tabBills" class="tab">Bills</div>
+  </div>
+
+  <main class="container">
+    <section id="dishesSection" class="card"><h3 style="margin:0">Stall 2 Dishes</h3><div id="dishesGrid" class="grid" style="margin-top:12px"></div></section>
+    <section id="billsSection" class="card" style="display:none;margin-top:12px"><h3 style="margin:0">Pending Bills — Stall 2</h3><div id="pendingList" class="list" style="margin-top:10px"><div class="small-muted">Loading...</div></div></section>
+  </main>
+
+<script>
+const IMG_DEFAULT = '/mnt/data/9eec5254-3cdb-405c-be8e-54c847ae264a.png', STALL_NAME=2, STALL_LABEL='Stall 2 — Punjab Dhaba';
+const LS={DISHES:'dhw_dishes_v1',ORDERS:'dhw_orders_v1',CART:'dhw_cart_v1',LAST:'dhw_last_receipt_v1'};
+let dishes=JSON.parse(localStorage.getItem(LS.DISHES)||'[]');
+
+function renderDishes(){ dishes=JSON.parse(localStorage.getItem(LS.DISHES)||'[]'); const list=dishes.filter(d=>Number(d.stall)===STALL_NAME); const el=document.getElementById('dishesGrid'); if(!list.length){el.innerHTML='<div class="small-muted">No dishes for this stall</div>';return;} el.innerHTML=list.map(d=>`<div class="item"><div class="thumb"><img src="${d.img||IMG_DEFAULT}"></div><div style="flex:1"><strong>${escape(d.name)}</strong><div class="small-muted">${escape(d.category)}</div><div style="font-weight:700;margin-top:6px">₹${Number(d.price).toFixed(2)}</div></div><div class="actions"><button onclick="addToCart(${d.id})">Add</button></div></div>`).join(''); }
+function addToCart(id){ let cart=JSON.parse(localStorage.getItem(LS.CART)||'[]'); const d=(dishes||[]).find(x=>x.id===id); if(!d)return; const f=cart.find(c=>c.id===id); if(f) f.qty++; else cart.push({id:d.id,name:d.name,price:d.price,qty:1,stall:d.stall}); localStorage.setItem(LS.CART, JSON.stringify(cart)); alert('Added to cart'); }
+function loadPending(){ const orders=JSON.parse(localStorage.getItem(LS.ORDERS)||'[]'); const pending=[]; orders.forEach(o=>{ if(o.items && o.items.some(it=>Number(it.stall)===STALL_NAME)){ const paid=(o.perStallPaid && (o.perStallPaid[STALL_LABEL]||0))||0; const items=o.items.filter(it=>Number(it.stall)===STALL_NAME); const subtotal=items.reduce((s,i)=>s+i.price*i.qty,0); const gst=+(subtotal*0.05).toFixed(2); const service=+(subtotal*0.02).toFixed(2); const total=+(subtotal+gst+service).toFixed(2); const due=Math.max(0,total-paid); if(due>0) pending.push({mainId:o.id,items,subtotal,gst,service,total,due}); }}); renderPending(pending); }
+function renderPending(list){ const el=document.getElementById('pendingList'); el.innerHTML=''; if(!list.length){ el.innerHTML='<div class="small-muted">No pending bills for this stall</div>'; return;} list.forEach(p=>{ const div=document.createElement('div'); div.className='row'; div.innerHTML=`<div style="flex:1"><strong>${p.mainId}</strong><div class="small-muted">${p.items.length} item(s) — Subtotal ₹${format(p.subtotal)}</div></div><div style="display:flex;gap:8px;align-items:center"><div style="font-weight:700">₹${format(p.due)}</div><button class="pay" onclick='payThis("${p.mainId}")'>Pay</button></div>`; el.appendChild(div); }); }
+function payThis(mainId){ if(!confirm('Confirm payment for this stall from main order '+mainId+'?')) return; let ordersLocal=JSON.parse(localStorage.getItem(LS.ORDERS)||'[]'); const main=ordersLocal.find(o=>o.id===mainId); if(!main) return alert('Order not found'); const items=main.items.filter(it=>Number(it.stall)===STALL_NAME); if(!items.length) return alert('No items'); const subtotal=items.reduce((s,i)=>s+i.price*i.qty,0); const gst=+(subtotal*0.05).toFixed(2); const service=+(subtotal*0.02).toFixed(2); const total=+(subtotal+gst+service).toFixed(2); const stallOrder={id:'STL'+Date.now(),parent:main.id,date:new Date().toISOString(),stall:STALL_LABEL,items:JSON.parse(JSON.stringify(items)),subtotal,gst,service,total,paidTo:STALL_LABEL}; ordersLocal.push(stallOrder); main.perStallPaid=main.perStallPaid||{}; main.perStallPaid[STALL_LABEL]=(main.perStallPaid[STALL_LABEL]||0)+total; main.paidAmount=Object.values(main.perStallPaid).reduce((s,v)=>s+v,0); if(main.paidAmount>=main.total-0.01) main.paidTo='main'; localStorage.setItem(LS.ORDERS, JSON.stringify(ordersLocal)); localStorage.setItem(LS.LAST, JSON.stringify(stallOrder)); alert('Stall payment recorded. Main order updated.'); loadPending(); window.dispatchEvent(new Event('storage')); }
+function format(n){ return Number(n||0).toFixed(2); } function escape(s){ return String(s||'').replace(/[&"'<>]/g,c=>({'&':'&amp;','"':'&quot;',"'":'&#39;','<':'&lt;','>':'&gt;'}[c])); }
+renderDishes(); loadPending(); window.addEventListener('storage', e=>{ if([LS.DISHES,LS.ORDERS].includes(e.key)){ renderDishes(); loadPending(); } });
+</script>
+</body>
+</html>

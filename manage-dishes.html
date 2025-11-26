@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Manage Dishes — Dhwarkadhish Food Court</title>
+<style>
+  body{font-family:Inter,Arial,Helvetica,sans-serif;margin:0;background:#f6f7fb}
+  header{background:#fff;padding:12px 18px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:12px}
+  .logo{width:44px;height:44px;border-radius:8px;background:#0b8f4a;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+  .container{max-width:1100px;margin:18px auto;padding:12px}
+  .card{background:#fff;padding:12px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.04)}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:8px;border-bottom:1px solid #f1f1f3;text-align:left}
+  input,select,button{padding:8px;border-radius:6px;border:1px solid #e6e6e9}
+  .actions{display:flex;gap:8px}
+  .small{font-size:13px;color:#666}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">D</div>
+  <div>
+    <div style="font-weight:700">Manage Dishes</div>
+    <div class="small">Add / Edit / Delete — Applies to all stalls</div>
+  </div>
+  <div style="margin-left:auto">
+    <a href="index.html" class="small">Back to Dashboard</a>
+  </div>
+</header>
+
+<main class="container">
+  <div class="card">
+    <h3 style="margin:0 0 8px 0">Add / Edit Dish</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <input id="name" placeholder="Dish name" style="flex:2">
+      <input id="price" placeholder="Price" type="number" style="width:120px">
+      <input id="category" placeholder="Category" style="width:160px">
+      <select id="stall">
+        <option value="1">Stall 1 — Dosa Corner</option>
+        <option value="2">Stall 2 — Punjab Dhaba</option>
+        <option value="3">Stall 3 — Dragon Wok</option>
+        <option value="4">Stall 4 — Street Bites</option>
+        <option value="5">Stall 5 — Sweet Sip</option>
+      </select>
+      <input id="img" placeholder="Image URL (optional)" style="width:260px">
+      <button id="addBtn" style="background:#0b8f4a;color:#fff;border:0">Add Dish</button>
+      <button id="updateBtn" style="display:none;background:#ff9800;color:#fff;border:0">Update</button>
+    </div>
+    <div style="margin-top:12px">
+      <table>
+        <thead><tr><th>Dish</th><th>Price</th><th>Category</th><th>Stall</th><th>Actions</th></tr></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+const IMG_DEFAULT = '/mnt/data/9eec5254-3cdb-405c-be8e-54c847ae264a.png';
+const LS = { DISHES:'dhw_dishes_v1', SESSION:'dhw_session_v1' };
+let dishes = JSON.parse(localStorage.getItem(LS.DISHES) || '[]');
+let editId = null;
+document.addEventListener('DOMContentLoaded', ()=>{
+  renderTable();
+  document.getElementById('addBtn').addEventListener('click', addDish);
+  document.getElementById('updateBtn').addEventListener('click', updateDish);
+  window.addEventListener('storage', e=>{ if(e.key === LS.DISHES) { dishes = JSON.parse(localStorage.getItem(LS.DISHES)||'[]'); renderTable(); } });
+});
+
+function renderTable(){
+  dishes = JSON.parse(localStorage.getItem(LS.DISHES) || '[]');
+  const tbody = document.getElementById('tableBody'); tbody.innerHTML = '';
+  if(!dishes.length){ tbody.innerHTML = '<tr><td colspan="5" class="small">No dishes</td></tr>'; return; }
+  dishes.forEach(d=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${escape(d.name)}</td><td>₹${Number(d.price).toFixed(2)}</td><td>${escape(d.category)}</td><td>Stall ${d.stall}</td>
+      <td class="actions"><button onclick='startEdit(${d.id})'>Edit</button><button onclick='deleteDish(${d.id})'>Delete</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function addDish(){
+  const name = document.getElementById('name').value.trim();
+  const price = parseFloat(document.getElementById('price').value || 0);
+  const category = document.getElementById('category').value.trim() || 'Misc';
+  const stall = parseInt(document.getElementById('stall').value || 1);
+  const img = document.getElementById('img').value.trim() || IMG_DEFAULT;
+  if(!name || price<=0){ alert('Enter name and valid price'); return; }
+  const id = dishes.length ? Math.max(...dishes.map(x=>x.id)) + 1 : 1;
+  dishes.push({id,name,price,category,stall,img});
+  localStorage.setItem(LS.DISHES, JSON.stringify(dishes));
+  clearForm(); renderTable(); alert('Dish added');
+}
+
+function startEdit(id){
+  const d = dishes.find(x=>x.id===id); if(!d) return;
+  editId = id; document.getElementById('name').value = d.name; document.getElementById('price').value = d.price; document.getElementById('category').value = d.category; document.getElementById('stall').value = d.stall; document.getElementById('img').value = d.img === IMG_DEFAULT ? '' : d.img;
+  document.getElementById('addBtn').style.display='none'; document.getElementById('updateBtn').style.display='inline-block';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function updateDish(){
+  if(!editId) return;
+  const d = dishes.find(x=>x.id===editId);
+  d.name = document.getElementById('name').value.trim() || d.name;
+  d.price = parseFloat(document.getElementById('price').value || d.price);
+  d.category = document.getElementById('category').value.trim() || d.category;
+  d.stall = parseInt(document.getElementById('stall').value || d.stall);
+  d.img = document.getElementById('img').value.trim() || d.img;
+  localStorage.setItem(LS.DISHES, JSON.stringify(dishes));
+  editId = null; document.getElementById('updateBtn').style.display='none'; document.getElementById('addBtn').style.display='inline-block';
+  clearForm(); renderTable(); alert('Updated');
+}
+function deleteDish(id){
+  if(!confirm('Delete this dish?')) return;
+  dishes = dishes.filter(x=>x.id!==id);
+  localStorage.setItem(LS.DISHES, JSON.stringify(dishes));
+  renderTable();
+}
+function clearForm(){ document.getElementById('name').value=''; document.getElementById('price').value=''; document.getElementById('category').value=''; document.getElementById('img').value=''; document.getElementById('stall').value='1'; }
+
+function escape(s){ return String(s||'').replace(/[&"'<>]/g,c=>({'&':'&amp;','"':'&quot;',"'":'&#39;','<':'&lt;','>':'&gt;'}[c])); }
+</script>
+</body>
+</html>

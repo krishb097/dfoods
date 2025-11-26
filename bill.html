@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Receipt — Dhwarkadhish</title>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+  body{font-family:Arial,Helvetica,sans-serif;margin:12px;background:#f6f7fb}
+  .receipt{background:#fff;padding:14px;border-radius:8px;max-width:700px;margin:0 auto;box-shadow:0 8px 30px rgba(0,0,0,0.08)}
+  .row{display:flex;justify-content:space-between;margin:6px 0}
+  .totals{font-weight:700;margin-top:8px}
+  .buttons{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+  button{padding:8px 10px;border-radius:8px;border:0;cursor:pointer}
+  .primary{background:#0b8f4a;color:#fff}
+  .secondary{background:#fff;border:1px solid #0b8f4a;color:#0b8f4a}
+</style>
+</head>
+<body>
+  <div id="root" class="receipt">
+    <div id="content"></div>
+    <div class="buttons">
+      <button id="downloadJpg" class="primary">Download JPG</button>
+      <button id="saveJson" class="secondary">Save JSON</button>
+      <button id="closeBtn" class="secondary">Close</button>
+    </div>
+  </div>
+
+<script>
+const LS_LAST = 'dhw_last_receipt_v1';
+function render(){
+  const raw = localStorage.getItem(LS_LAST);
+  if(!raw){ document.getElementById('content').innerHTML = '<div>No receipt found</div>'; return; }
+  const o = JSON.parse(raw);
+  const head = `<div style="display:flex;justify-content:space-between"><div><strong>Dhwarkadhish Food Court</strong><div style="font-size:13px;color:#666">${new Date(o.date).toLocaleString()}</div></div><div><strong>Order: ${o.id || ''}</strong></div></div><hr>`;
+  const items = (o.items||[]).map(it=>`<div style="display:flex;justify-content:space-between;margin:6px 0"><div>${escape(it.name)} x ${it.qty} <small style="color:#666">(${escape(it.stall)})</small></div><div>₹${(it.price*it.qty).toFixed(2)}</div></div>`).join('');
+  const totals = `<div style="border-top:1px dashed #eee;padding-top:8px"><div class="row"><div>Subtotal</div><div>₹${(o.subtotal||0).toFixed(2)}</div></div><div class="row"><div>GST</div><div>₹${(o.gst||0).toFixed(2)}</div></div><div class="row"><div>Service</div><div>₹${(o.service||0).toFixed(2)}</div></div><div class="row"><div>Discount</div><div>-₹${(o.discount||0).toFixed(2)}</div></div><div class="row totals"><div>Total</div><div>₹${(o.total||0).toFixed(2)}</div></div></div>`;
+  document.getElementById('content').innerHTML = head + items + totals + `<div style="margin-top:8px;font-size:13px;color:#666">Paid To: ${escape(o.paidTo||'N/A')} | Paid Amount: ₹${(o.paidAmount||0).toFixed(2)}</div>`;
+}
+
+function escape(s){ return String(s||'').replace(/[&"'<>]/g,c=>({'&':'&amp;','"':'&quot;',"'":'&#39;','<':'&lt;','>':'&gt;'}[c])); }
+
+document.getElementById('downloadJpg').addEventListener('click', ()=>{
+  const el = document.getElementById('content');
+  html2canvas(el, {scale:3, backgroundColor:null}).then(canvas=>{
+    canvas.toBlob(blob=>{
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'dhw_receipt_'+Date.now()+'.jpg'; a.click(); URL.revokeObjectURL(url);
+    }, 'image/jpeg', 0.95);
+  }).catch(err=>alert('Failed to export: '+err));
+});
+document.getElementById('saveJson').addEventListener('click', ()=>{
+  const raw = localStorage.getItem(LS_LAST); if(!raw) return alert('No receipt'); const blob=new Blob([raw],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='dhw_receipt_'+Date.now()+'.json'; a.click(); URL.revokeObjectURL(url);
+});
+document.getElementById('closeBtn').addEventListener('click', ()=>window.close());
+
+render();
+</script>
+</body>
+</html>

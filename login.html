@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Dhwarkadhish Food Court — Admin Login</title>
+<style>
+  body{font-family:Inter,Arial,Helvetica,sans-serif;background:#f3f6f4;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
+  .card{background:#fff;padding:22px;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.06);width:380px}
+  h2{text-align:center;margin:0 0 12px}
+  input{width:100%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ddd}
+  button{width:100%;padding:10px;border-radius:6px;border:0;background:#0b8f4a;color:#fff;font-weight:700;cursor:pointer}
+  small{display:block;text-align:center;margin-top:8px;color:#666}
+  .links{display:flex;justify-content:space-between;margin-top:10px;font-size:13px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h2>Dhwarkadhish Food Court — Admin Login</h2>
+    <input id="username" placeholder="Username" value="admin" />
+    <input id="password" placeholder="Password" type="password" value="admin123" />
+    <button id="btnLogin">Login</button>
+    <div class="links">
+      <div><small>Default admin: <strong>admin</strong></small></div>
+      <div><small><a href="dashboard.html">Open Demo (no login)</a></small></div>
+    </div>
+    <small>Data stored in browser localStorage only.</small>
+  </div>
+
+<script>
+const LS = {
+  USERS: 'dhw_users_v1',
+  SESSION: 'dhw_session_v1'
+};
+
+// ensure default admin exists (persist under dhw_users_v1)
+(function ensureAdmin(){
+  let users = JSON.parse(localStorage.getItem(LS.USERS) || '[]');
+  if(!users.some(u=>u.username==='admin')){
+    users.push({username:'admin', password:'admin123', role:'admin'});
+    localStorage.setItem(LS.USERS, JSON.stringify(users));
+  }
+})();
+
+document.getElementById('btnLogin').addEventListener('click', ()=>{
+  const u = document.getElementById('username').value.trim();
+  const p = document.getElementById('password').value;
+  const users = JSON.parse(localStorage.getItem(LS.USERS) || '[]');
+  const found = users.find(x=>x.username===u && x.password===p && x.role==='admin');
+  if(found){
+    localStorage.setItem(LS.SESSION, JSON.stringify(found));
+    // go to dashboard
+    window.location.href = 'index.html';
+  } else {
+    alert('Invalid admin credentials.');
+  }
+});
+
+// allow pressing Enter
+document.addEventListener('keydown', (e)=>{ if(e.key==='Enter') document.getElementById('btnLogin').click(); });
+</script>
+</body>
+</html>
