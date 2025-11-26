@@ -92,6 +92,18 @@
 <!-- receipt modal uses bill.html (embedded via JS) -->
 
 <script>
+  // --- LOGIN PROTECTION (Dashboard cannot open without login) ---
+(function protectPage(){
+  const ses = JSON.parse(localStorage.getItem('dhw_session_v1') || 'null');
+
+  // If no session → go to login page  
+  if(!ses){
+    window.location.href = "login.html";
+    return;
+  }
+
+  // If session exists → DO NOT redirect again, allow dashboard to open
+})();
 const IMG_DEFAULT = '/mnt/data/9eec5254-3cdb-405c-be8e-54c847ae264a.png';
 const LS = {
   DISHES: 'dhw_dishes_v1',
@@ -354,4 +366,5 @@ window.addEventListener('storage', (e)=>{ if([LS.DISHES,LS.ORDERS,LS.CART].inclu
 
 </script>
 </body>
+
 </html>
